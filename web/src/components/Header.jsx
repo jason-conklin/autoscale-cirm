@@ -4,10 +4,8 @@ const Header = () => {
   return (
     <header className="header">
       <div className="header-title">
-        <span role="img" aria-label="AutoScale">
-          📈
-        </span>
-        <span>AutoScale CIRM</span>
+        <img src="/logo.png" alt="AutoScale CIRM" className="header-logo" />
+        <span className="sr-only">AutoScale CIRM</span>
       </div>
       <nav className="header-nav">
         <NavLink
@@ -28,4 +26,3 @@ const Header = () => {
 };
 
 export default Header;
-
