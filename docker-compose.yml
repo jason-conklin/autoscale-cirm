@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./api
+    env_file:
+      - ./api/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app
+      - ./api/autoscale.db:/app/autoscale.db
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+    depends_on:
+      - api
+    restart: unless-stopped
+
