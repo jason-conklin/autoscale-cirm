@@ -103,3 +103,28 @@ AutoScale CIRM/
 
 Enjoy proactive autoscaling insights with AutoScale CIRM!
 
+## Screenshots
+Screenshot 1
+Dashboard overview
+Live KPIs, charts, and forecasts for active infrastructure.
+<img width="1570" height="1360" alt="CIRM_dashboard" src="https://github.com/user-attachments/assets/913dc0e9-8daf-48d9-81ce-0ec0daa53d06" />
+
+Screenshot 2
+Resource selector
+Switch between providers, instances, and custom time ranges.
+<img width="1521" height="394" alt="CIRM_resource" src="https://github.com/user-attachments/assets/206dc38d-79f2-4dd2-b178-824a300f88e3" />
+
+Screenshot 3
+Forecast card
+Predicts upcoming saturation thresholds with ETA and confidence bands.
+<img width="1534" height="549" alt="CIRM_forecast" src="https://github.com/user-attachments/assets/bc114f94-9f6f-4176-9f0d-cea2b87d7358" />
+
+Screenshot 4
+Alerts table
+Review Slack and email alerts with delivery timestamps.
+<img width="1512" height="267" alt="CIRM_alerts" src="https://github.com/user-attachments/assets/45a03f22-ab07-468a-bd78-97fcd0d1b27e" />
+
+Screenshot 5
+Settings panel
+Configure providers, thresholds, and send test alerts from one place.
+<img width="1553" height="760" alt="CIRM_settings" src="https://github.com/user-attachments/assets/2e7b736f-e49e-4654-8a4d-c872c4e2bc9d" />
