@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from flask import Blueprint, current_app, jsonify
 
+from api.services.alerts import available_alert_channels
+
 system_bp = Blueprint("system", __name__, url_prefix="/api")
 
 
@@ -15,5 +17,6 @@ def health_check():
 @system_bp.get("/config")
 def read_config():
     config = current_app.config.get("APP_CONFIG")
-    return jsonify(config.as_read_only_dict())
-
+    payload = config.as_read_only_dict()
+    payload["available_alert_channels"] = available_alert_channels(config)
+    return jsonify(payload)

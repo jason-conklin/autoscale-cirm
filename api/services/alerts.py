@@ -4,25 +4,37 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import smtplib
 from datetime import datetime, timedelta
 from email.message import EmailMessage
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Tuple
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from ..models import AlertRecord, ForecastRecord, MetricRecord
-from .config import AppConfig
+from api.models import AlertRecord, ForecastRecord, MetricRecord
+from api.services.config import AppConfig
 
 LOGGER = logging.getLogger("autoscale.alerts")
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+
+
+def available_alert_channels(config: AppConfig) -> List[str]:
+    """Compute available alert channels at runtime."""
+    channels: List[str] = []
+    if SLACK_WEBHOOK_URL:
+        channels.append("slack")
+    if config.alerts.smtp_host and config.alerts.smtp_to:
+        channels.append("email")
+    return channels
 
 
 def dispatch_alerts(session: Session, forecasts: Iterable[ForecastRecord], config: AppConfig) -> None:
     """Send alerts for forecasts that fall within the lookahead window."""
-    channels = config.alerts.channels()
+    channels = available_alert_channels(config)
     if not channels:
         LOGGER.debug("No alert channels configured; skipping alert dispatch.")
         return
@@ -59,7 +71,7 @@ def dispatch_alerts(session: Session, forecasts: Iterable[ForecastRecord], confi
         for channel in channels:
             status = "sent"
             try:
-                _deliver_alert(channel, config, message, forecast)
+                _deliver_alert(channel, config, message)
             except Exception as exc:  # pragma: no cover - network operations
                 status = "failed"
                 LOGGER.exception("Failed to deliver alert via %s: %s", channel, exc)
@@ -75,12 +87,9 @@ def dispatch_alerts(session: Session, forecasts: Iterable[ForecastRecord], confi
                 )
 
 
-def send_test_alert(session: Session, config: AppConfig) -> List[AlertRecord]:
+def send_test_alert(session: Session, config: AppConfig) -> Tuple[List[AlertRecord], str, List[str]]:
     """Send a test alert through all configured channels."""
-    channels = config.alerts.channels()
-    if not channels:
-        raise ValueError("No alert channels configured.")
-
+    channels = available_alert_channels(config)
     forecast_stub = ForecastRecord(
         resource_id="test-resource",
         metric="cpu_pct",
@@ -91,13 +100,31 @@ def send_test_alert(session: Session, config: AppConfig) -> List[AlertRecord]:
     message = "Test alert from AutoScale CIRM."
 
     records: List[AlertRecord] = []
+    successful_channels: List[str] = []
+    failed_channels: List[str] = []
+    if not channels:
+        LOGGER.info("No delivery channels configured; storing test alert only.")
+        record = AlertRecord(
+            resource_id=forecast_stub.resource_id,
+            metric=forecast_stub.metric,
+            channel="none",
+            status="stored",
+            message=message,
+        )
+        session.add(record)
+        records.append(record)
+        session.commit()
+        return records, "Stored test alert (no delivery channels configured).", successful_channels
+
     for channel in channels:
         status = "sent"
         try:
-            _deliver_alert(channel, config, message, forecast_stub)
+            _deliver_alert(channel, config, message)
+            successful_channels.append(channel)
         except Exception as exc:  # pragma: no cover
             status = "failed"
             LOGGER.exception("Failed to deliver test alert via %s: %s", channel, exc)
+            failed_channels.append(channel)
         finally:
             record = AlertRecord(
                 resource_id=forecast_stub.resource_id,
@@ -109,43 +136,33 @@ def send_test_alert(session: Session, config: AppConfig) -> List[AlertRecord]:
             session.add(record)
             records.append(record)
     session.commit()
-    return records
+    if successful_channels:
+        success_message = f"Test alert sent via: {', '.join(successful_channels)}"
+    else:
+        success_message = "Stored test alert; delivery failed for all channels."
+    if failed_channels:
+        success_message += f" (failed: {', '.join(failed_channels)})"
+    return records, success_message, successful_channels
 
 
-def _deliver_alert(channel: str, config: AppConfig, message: str, forecast: ForecastRecord) -> None:
+def _deliver_alert(channel: str, config: AppConfig, message: str) -> None:
     if channel == "slack":
-        _send_slack_alert(config.alerts.slack_webhook_url, message, forecast)
+        send_to_slack(message)
     elif channel == "email":
-        _send_email_alert(config, message, forecast)
+        _send_email_alert(config, message)
     else:
         raise ValueError(f"Unsupported alert channel: {channel}")
 
 
-def _send_slack_alert(webhook_url: Optional[str], message: str, forecast: ForecastRecord) -> None:
-    if not webhook_url:
+def send_to_slack(message: str) -> None:
+    """Send a simple message to the configured Slack webhook."""
+    if not SLACK_WEBHOOK_URL:
         raise ValueError("Slack webhook URL not configured.")
 
-    payload = {
-        "text": message,
-        "attachments": [
-            {
-                "color": "#f97316",
-                "fields": [
-                    {"title": "Resource", "value": forecast.resource_id, "short": True},
-                    {"title": "Metric", "value": forecast.metric, "short": True},
-                    {
-                        "title": "Predicted Breach",
-                        "value": forecast.predicted_breach_time.isoformat() if forecast.predicted_breach_time else "n/a",
-                        "short": False,
-                    },
-                ],
-            }
-        ],
-    }
-
+    payload = json.dumps({"text": message}).encode("utf-8")
     request = Request(
-        webhook_url,
-        data=json.dumps(payload).encode("utf-8"),
+        SLACK_WEBHOOK_URL,
+        data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",
     )
@@ -153,21 +170,21 @@ def _send_slack_alert(webhook_url: Optional[str], message: str, forecast: Foreca
         with urlopen(request, timeout=10) as response:  # pragma: no cover - network call
             if response.status >= 400:
                 raise ValueError(f"Slack webhook returned status {response.status}")
+        LOGGER.info("Slack alert sent successfully.")
     except URLError as exc:  # pragma: no cover
+        LOGGER.error("Slack webhook error: %s", exc)
         raise ValueError(f"Slack webhook error: {exc}") from exc
 
 
-def _send_email_alert(config: AppConfig, message: str, forecast: ForecastRecord) -> None:
+def _send_email_alert(config: AppConfig, message: str) -> None:
     if not config.alerts.smtp_host or not config.alerts.smtp_to or not config.alerts.smtp_from:
         raise ValueError("SMTP configuration incomplete.")
 
     email = EmailMessage()
-    email["Subject"] = f"AutoScale: Forecasted saturation for {forecast.resource_id}"
+    email["Subject"] = "AutoScale CIRM Alert"
     email["From"] = config.alerts.smtp_from
     email["To"] = config.alerts.smtp_to
-    email.set_content(
-        f"{message}\n\nConfidence: {forecast.confidence if forecast.confidence is not None else 'n/a'}"
-    )
+    email.set_content(message)
 
     smtp_port = config.alerts.smtp_port or 587
 
@@ -190,4 +207,3 @@ def _has_recent_alert(session: Session, forecast: ForecastRecord, lookahead: tim
         .first()
         is not None
     )
-

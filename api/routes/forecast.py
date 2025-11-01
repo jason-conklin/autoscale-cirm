@@ -5,7 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import asc, desc
 
-from ..models import ForecastRecord
+from api.models import ForecastRecord
 
 forecast_bp = Blueprint("forecast", __name__, url_prefix="/api")
 
@@ -38,4 +38,3 @@ def list_forecasts():
         return jsonify({"forecasts": payload})
     finally:
         session.close()
-

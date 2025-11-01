@@ -1,2 +1,0 @@
-"""AutoScale CIRM backend package."""
-

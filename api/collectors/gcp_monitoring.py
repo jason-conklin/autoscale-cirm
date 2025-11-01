@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Sequence
 
-from .base import MetricCollector, MetricSample, CollectorError
+from api.collectors.base import MetricCollector, MetricSample, CollectorError
 
 try:
     from google.cloud import monitoring_v3  # type: ignore
@@ -146,4 +146,3 @@ class GCPMonitoringCollector(MetricCollector):
         if value is not None:
             value *= scale
         return self._ValueWithTimestamp(value, ts)
-

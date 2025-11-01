@@ -8,7 +8,7 @@ from typing import Dict, List
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import asc
 
-from ..models import MetricRecord
+from api.models import MetricRecord
 
 metrics_bp = Blueprint("metrics", __name__, url_prefix="/api")
 
@@ -69,4 +69,3 @@ def list_metrics():
         )
     finally:
         session.close()
-

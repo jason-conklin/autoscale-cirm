@@ -3,20 +3,20 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..collectors.aws_cloudwatch import AWSCloudWatchCollector
-from ..collectors.base import MetricCollector, MetricSample, CollectorError
-from ..collectors.gcp_monitoring import GCPMonitoringCollector
-from ..collectors.local_psutil import LocalPsutilCollector
-from ..models import MetricRecord
-from .config import AppConfig
-from . import forecasting, alerts
+from api.collectors.aws_cloudwatch import AWSCloudWatchCollector
+from api.collectors.base import MetricCollector, MetricSample, CollectorError
+from api.collectors.gcp_monitoring import GCPMonitoringCollector
+from api.collectors.local_psutil import LocalPsutilCollector
+from api.models import MetricRecord
+from api.services import forecasting, alerts
+from api.services.config import AppConfig
 
 LOGGER = logging.getLogger("autoscale.scheduler")
 
@@ -45,7 +45,8 @@ class SchedulerService:
             trigger="interval",
             minutes=self._config.poll_interval_minutes,
             id=self._job_id,
-            next_run_time=datetime.utcnow(),
+            next_run_time=datetime.now(timezone.utc),
+            replace_existing=True,
             max_instances=1,
         )
         self._scheduler.start()

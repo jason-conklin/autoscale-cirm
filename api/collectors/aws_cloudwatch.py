@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Sequence, Tuple
 
-from .base import MetricCollector, MetricSample, CollectorError
+from api.collectors.base import MetricCollector, MetricSample, CollectorError
 
 try:
     import boto3  # type: ignore

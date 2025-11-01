@@ -10,8 +10,8 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sqlalchemy.orm import Session
 
-from ..models import ForecastRecord, MetricRecord
-from .config import AppConfig
+from api.models import ForecastRecord, MetricRecord
+from api.services.config import AppConfig
 
 LOGGER = logging.getLogger("autoscale.forecasting")
 
@@ -108,4 +108,3 @@ def _predict_threshold_crossing(
         confidence = None
 
     return predicted_dt, confidence
-

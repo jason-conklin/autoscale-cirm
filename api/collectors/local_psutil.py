@@ -7,7 +7,7 @@ import random
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Sequence
 
-from .base import MetricCollector, MetricSample, CollectorError
+from api.collectors.base import MetricCollector, MetricSample, CollectorError
 
 try:
     import psutil  # type: ignore
@@ -62,4 +62,3 @@ class LocalPsutilCollector(MetricCollector):
                 )
             )
         return samples
-

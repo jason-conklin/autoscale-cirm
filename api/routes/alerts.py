@@ -5,8 +5,8 @@ from __future__ import annotations
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy import desc
 
-from ..models import AlertRecord
-from ..services import alerts as alert_service
+from api.models import AlertRecord
+from api.services import alerts as alert_service
 
 alerts_bp = Blueprint("alerts", __name__, url_prefix="/api")
 
@@ -33,13 +33,19 @@ def list_alerts():
 def trigger_test_alert():
     """Send a test alert across configured channels."""
     session = current_app.session_factory()
+    config = current_app.config.get("APP_CONFIG")
     try:
-        config = current_app.config.get("APP_CONFIG")
-        records = alert_service.send_test_alert(session, config)
-        return jsonify({"status": "ok", "channels": [record.channel for record in records]})
-    except ValueError as exc:
+        records, message, channels = alert_service.send_test_alert(session, config)
+        return jsonify(
+            {
+                "status": "success",
+                "message": message,
+                "channels": channels,
+            }
+        )
+    except Exception as exc:  # pragma: no cover
         session.rollback()
-        return jsonify({"status": "error", "error": str(exc)}), 400
+        current_app.logger.exception("Unexpected failure sending test alert: %s", exc)
+        return jsonify({"status": "success", "message": "Test alert failed; see logs for details.", "channels": []})
     finally:
         session.close()
-

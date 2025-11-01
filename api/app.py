@@ -18,13 +18,13 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from models import Base  # noqa: E402
-from routes.alerts import alerts_bp  # noqa: E402
-from routes.forecast import forecast_bp  # noqa: E402
-from routes.metrics import metrics_bp  # noqa: E402
-from routes.system import system_bp  # noqa: E402
-from services.config import configure_logging, load_config  # noqa: E402
-from services.scheduler import SchedulerService  # noqa: E402
+from api.models import Base  # noqa: E402
+from api.routes.alerts import alerts_bp  # noqa: E402
+from api.routes.forecast import forecast_bp  # noqa: E402
+from api.routes.metrics import metrics_bp  # noqa: E402
+from api.routes.system import system_bp  # noqa: E402
+from api.services.config import configure_logging, load_config  # noqa: E402
+from api.services.scheduler import SchedulerService  # noqa: E402
 
 
 def create_app() -> Flask:
@@ -79,4 +79,3 @@ def create_app() -> Flask:
 if __name__ == "__main__":
     application = create_app()
     application.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
-
