@@ -1,4 +1,5 @@
 # AutoScale CIRM (Cloud Infrastructure Resource Monitor)
+<img width="1553" height="940" alt="Screenshot 2025-11-01 042439" src="https://github.com/user-attachments/assets/7348a920-0fd0-4967-bb18-2e0843e88467" />
 
 AutoScale CIRM delivers real-time and predictive insight into your compute fleet. The stack combines a Flask API with a React + Vite dashboard to monitor CPU, memory, and network utilisation, produce short-term forecasts, and raise proactive alerts via Slack or email.
 
